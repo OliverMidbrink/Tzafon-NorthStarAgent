@@ -33,14 +33,26 @@ def load_config():
     api_key = os.getenv("GPU_API_KEY")
     if not api_key:
         try:
-            with open(".api_key.txt", "r") as f:
-                api_key = f.read().strip()
-        except FileNotFoundError:
+            # Try current directory first, then script directory
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            api_key_paths = [".api_key.txt", os.path.join(script_dir, ".api_key.txt")]
+            
+            for path in api_key_paths:
+                try:
+                    with open(path, "r") as f:
+                        api_key = f.read().strip()
+                        break
+                except FileNotFoundError:
+                    continue
+            else:
+                api_key = "ui-tars-default-key"
+        except Exception:
             api_key = "ui-tars-default-key"
     
     return server_url, api_key
 
 GPU_SERVER_URL, GPU_API_KEY = load_config()
+logger.info(f"Loaded API key: {GPU_API_KEY[:20]}... from config")
 
 # Disable pyautogui failsafe
 pyautogui.FAILSAFE = False
@@ -191,7 +203,7 @@ class ScreenAutomationClient:
             headers = {"Authorization": f"Bearer {GPU_API_KEY}"}
             
             with open(tmp_file_path, 'rb') as f:
-                files = {"file": f}
+                files = {"file": (tmp_file_path, f, "image/png")}
                 data = {
                     "query": query,
                     "max_tokens": 500
