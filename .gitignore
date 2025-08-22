@@ -62,3 +62,7 @@ models/
 checkpoints/
 
 .api_key.txt
+
+tmp/
+
+model_inputted_images_log/

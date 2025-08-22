@@ -15,9 +15,13 @@ import os
 import pyautogui
 import requests
 import tempfile
+import uuid
+import time
+import base64
 from mcp.server import NotificationOptions, Server
 from mcp.server.models import InitializationOptions
 from PIL import Image
+from pathlib import Path
 from typing import Optional, Tuple
 
 # Configure logging
@@ -112,6 +116,7 @@ class ScreenAutomationClient:
                         "required": ["element_description"]
                     },
                 ),
+                
             ]
 
         @self.server.call_tool()
@@ -140,25 +145,31 @@ class ScreenAutomationClient:
                     text=f"Error: {str(e)}"
                 )]
 
-    def capture_screenshot(self) -> Tuple[Image.Image, Tuple[int, int]]:
-        """Capture screenshot and return both original and resized versions"""
-        # Capture full screen
+    def capture_screenshot(self) -> Tuple[str, Tuple[int, int]]:
+        """Capture screenshot (original size), save to absolute tmp folder, return filename and original size"""
+        # Capture full screen at original resolution
         screenshot = pyautogui.screenshot()
         original_size = screenshot.size
-        
         logger.info(f"Captured screenshot: {original_size}")
-        
-        # Resize to target size for GPU server while maintaining aspect ratio
+
+        # Ensure absolute tmp directory next to this script
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        tmp_dir = os.path.join(script_dir, "tmp")
+        os.makedirs(tmp_dir, exist_ok=True)
+
+        # Save original image (no resizing) with UUID name
+        filename = f"{uuid.uuid4()}.png"
+        filepath = os.path.join(tmp_dir, filename)
+        screenshot.save(filepath, "PNG")
+
+        # Also save a proportional low-scale copy (major axis 1024, no padding)
         resized = screenshot.copy()
-        resized.thumbnail(self.target_size, Image.Resampling.LANCZOS)
-        
-        # Create final image with white background
-        final_image = Image.new("RGB", self.target_size, (255, 255, 255))
-        offset = ((self.target_size[0] - resized.size[0]) // 2, 
-                 (self.target_size[1] - resized.size[1]) // 2)
-        final_image.paste(resized, offset)
-        
-        return final_image, original_size
+        resized.thumbnail((1024, 1024), Image.Resampling.LANCZOS)
+        low_path = os.path.join(tmp_dir, f"low_scale_{Path(filename).stem}.png")
+        resized.save(low_path, "PNG")
+        logger.info(f"Saved proportional low-scale client image: {low_path}")
+
+        return filename, original_size
 
     def scale_coordinates(self, coords: dict, original_size: Tuple[int, int]) -> Tuple[int, int]:
         """Scale coordinates from 1024x1024 back to original screen resolution"""
@@ -191,25 +202,25 @@ class ScreenAutomationClient:
         
         return final_x, final_y
 
-    async def send_to_gpu_server(self, image: Image.Image, query: str) -> dict:
-        """Send image to GPU server for analysis"""
+    async def send_to_gpu_server(self, filename: str, query: str, scene: str = "computer") -> dict:
+        """Send image file to GPU server for analysis with a scene hint (computer|grounding)."""
         
-        # Save image to temp file
-        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_file:
-            image.save(tmp_file.name, 'PNG')
-            tmp_file_path = tmp_file.name
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        filepath = os.path.join(script_dir, "tmp", filename)
         
         try:
             headers = {"Authorization": f"Bearer {GPU_API_KEY}"}
             
-            with open(tmp_file_path, 'rb') as f:
-                files = {"file": (tmp_file_path, f, "image/png")}
+            with open(filepath, 'rb') as f:
+                files = {"file": (filename, f, "image/png")}
                 data = {
                     "query": query,
-                    "max_tokens": 500
+                    "max_tokens": 500,
+                    "scene": scene,
                 }
                 
                 logger.info(f"Sending request to GPU server: {query}")
+                logger.info(f"Image filename: {filename}")
                 
                 response = requests.post(
                     f"{GPU_SERVER_URL}/analyze",
@@ -219,22 +230,19 @@ class ScreenAutomationClient:
                     timeout=30
                 )
                 
-                if response.status_code == 200:
-                    result = response.json()
-                    logger.info(f"GPU server response: {result}")
-                    return result
-                elif response.status_code == 503:
-                    raise Exception("GPU server is busy, try again later")
-                else:
-                    raise Exception(f"GPU server error {response.status_code}: {response.text}")
+            if response.status_code == 200:
+                result = response.json()
+                logger.info(f"GPU server response: {result}")
+                return result
+            elif response.status_code == 503:
+                raise Exception("GPU server is busy, try again later")
+            else:
+                raise Exception(f"GPU server error {response.status_code}: {response.text}")
                     
-        finally:
-            # Clean up temp file
-            try:
-                import os
-                os.unlink(tmp_file_path)
-            except:
-                pass
+        except Exception as e:
+            logger.error(f"Error sending to GPU server: {e}")
+            raise
+
 
     async def _click_element(self, arguments: dict) -> list[types.TextContent]:
         """Take screenshot, find element, and click it"""
@@ -244,25 +252,27 @@ class ScreenAutomationClient:
             raise ValueError("element_description is required")
         
         # Capture screenshot
-        image, original_size = self.capture_screenshot()
+        filename, original_size = self.capture_screenshot()
         
-        # Create query for finding clickable element
-        query = f"I want to click on the {element_description}. Please provide the exact coordinates where I should click. Respond with coordinates in format (x, y)."
+        # Create concise instruction (server will wrap with grounding prompt)
+        query = f"Click the {element_description}"
         
         # Send to GPU server
-        result = await self.send_to_gpu_server(image, query)
+        result = await self.send_to_gpu_server(filename, query, scene="grounding")
         
         # Extract coordinates
         if result.get('coordinates'):
-            # Scale coordinates back to original resolution
-            scaled_x, scaled_y = self.scale_coordinates(result['coordinates'], original_size)
-            
-            # Perform click
-            pyautogui.click(scaled_x, scaled_y)
-            
+            # Server returns coordinates already in original resolution
+            coords = result['coordinates']
+            target_x, target_y = coords['x'], coords['y']
+            # Smoothly move for 1s so it is visible, then mouseDown/Up
+            pyautogui.moveTo(target_x, target_y, duration=1.0)
+            pyautogui.mouseDown()
+            time.sleep(0.05)
+            pyautogui.mouseUp()
             return [types.TextContent(
                 type="text",
-                text=f"Successfully clicked {element_description} at coordinates ({scaled_x}, {scaled_y}). Analysis: {result['result']}"
+                text=f"Successfully clicked {element_description} at coordinates ({target_x}, {target_y}). Analysis: {result['result']}"
             )]
         else:
             return [types.TextContent(
@@ -275,10 +285,10 @@ class ScreenAutomationClient:
         query = arguments.get("query", "Describe what is visible on this screen in detail.")
         
         # Capture screenshot
-        image, original_size = self.capture_screenshot()
+        filename, original_size = self.capture_screenshot()
         
         # Send to GPU server
-        result = await self.send_to_gpu_server(image, query)
+        result = await self.send_to_gpu_server(filename, query, scene="computer")
         
         return [types.TextContent(
             type="text",
@@ -293,27 +303,28 @@ class ScreenAutomationClient:
             raise ValueError("element_description is required")
         
         # Capture screenshot
-        image, original_size = self.capture_screenshot()
+        filename, original_size = self.capture_screenshot()
         
-        # Create query for finding element coordinates
-        query = f"Where is the {element_description} located? Please provide the exact coordinates in format (x, y)."
+        # Create concise instruction (server will wrap with grounding prompt)
+        query = f"Find the {element_description}"
         
         # Send to GPU server
-        result = await self.send_to_gpu_server(image, query)
+        result = await self.send_to_gpu_server(filename, query, scene="grounding")
         
-        # Extract and scale coordinates
+        # Extract coordinates (already original scale from server)
         if result.get('coordinates'):
-            scaled_x, scaled_y = self.scale_coordinates(result['coordinates'], original_size)
-            
+            coords = result['coordinates']
             return [types.TextContent(
                 type="text",
-                text=f"Found {element_description} at coordinates ({scaled_x}, {scaled_y}). Analysis: {result['result']}"
+                text=f"Found {element_description} at coordinates ({coords['x']}, {coords['y']}). Analysis: {result['result']}"
             )]
         else:
             return [types.TextContent(
                 type="text",
                 text=f"Could not find coordinates for {element_description}. Analysis: {result['result']}"
             )]
+
+    
 
     async def run(self):
         """Run the MCP client server"""

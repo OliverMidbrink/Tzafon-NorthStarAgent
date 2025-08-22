@@ -36,7 +36,7 @@ def test_health():
         print(f"Server not accessible: {e}")
         return False
 
-def analyze_image(image_path: str, query: str, max_tokens: int = 500):
+def analyze_image(image_path: str, query: str, max_tokens: int = 500, scene: str = "computer"):
     """Analyze an image with a custom query"""
     
     if not Path(image_path).exists():
@@ -49,7 +49,8 @@ def analyze_image(image_path: str, query: str, max_tokens: int = 500):
         files = {"file": f}
         data = {
             "query": query,
-            "max_tokens": max_tokens
+            "max_tokens": max_tokens,
+            "scene": scene,
         }
         
         try:
@@ -163,7 +164,7 @@ def main():
     print(f"📷 Test image: {test_image}")
     
     print("\n1️⃣ Testing Image Analysis...")
-    analyze_image(test_image, "What website is shown in this image?")
+    analyze_image(test_image, "What website is shown in this image?", scene="computer")
     
     print("\n2️⃣ Testing Image Description...")
     describe_image(test_image)
