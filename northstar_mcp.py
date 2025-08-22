@@ -22,7 +22,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 
 # Import our UI TARS functionality
-from ui_tars_2b_infer import run_inference, DEFAULT_MODEL_ID
+from ui_tars_model import run_inference, DEFAULT_MODEL_ID
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -301,20 +301,26 @@ async def click_coordinate(
 
 def main():
     """Main entry point"""
-    print("🚀 Starting UI-TARS HTTP Server")
-    print(f"🔑 API Key: {API_KEY}")
-    print("📡 Endpoints:")
-    print("  POST /analyze - Analyze image with query")
-    print("  POST /describe - Describe image") 
-    print("  POST /click - Analyze click coordinates")
-    print("  GET /health - Health check")
+    print("🌟 NorthStar MCP Server - UI-TARS Vision API")
+    print("=" * 50)
+    print(f"🔑 API Key: {API_KEY} (from {key_source})")
+    print("🎯 GPU Model: UI-TARS-2B-SFT")
+    print("🔒 Single-threaded GPU processing")
+    print("")
+    print("📡 Available endpoints:")
+    print("  POST /analyze - Custom image analysis with coordinates")
+    print("  POST /describe - Detailed image descriptions") 
+    print("  POST /click - Click coordinate analysis")
+    print("  GET /health - Server and GPU health check")
     print("")
     print("🔐 Authentication: Bearer token required")
-    print("💡 Example curl:")
+    print("💡 Example usage:")
     print(f'  curl -X POST "http://localhost:8000/analyze" \\')
     print(f'       -H "Authorization: Bearer {API_KEY}" \\')
-    print(f'       -F "file=@image.png" \\')
-    print(f'       -F "query=What do you see?"')
+    print(f'       -F "file=@screenshot.png" \\')
+    print(f'       -F "query=Where is the close button?"')
+    print("")
+    print("🚀 Starting server on http://0.0.0.0:8000...")
     
     uvicorn.run(
         app,

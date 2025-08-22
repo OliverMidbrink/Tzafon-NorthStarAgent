@@ -321,12 +321,23 @@ class ScreenAutomationClient:
 
 def main():
     """Main entry point"""
-    print("🖥️  Starting Screen Automation MCP Client")
-    print(f"🎯 GPU Server: {GPU_SERVER_URL}")
-    print("🔧 Available tools:")
-    print("  - click_element: Find and click UI elements")
-    print("  - analyze_screen: Analyze what's on screen")
-    print("  - find_coordinates: Get coordinates of elements")
+    print("🖥️  Cursor MCP Client - Screen Automation")
+    print("=" * 50)
+    print(f"🎯 NorthStar Server: {GPU_SERVER_URL}")
+    print(f"🔑 API Key: {GPU_API_KEY[:20]}...")
+    print("")
+    print("🔧 Available MCP tools for Cursor:")
+    print("  - click_element: 'Click the X button'")
+    print("  - analyze_screen: 'What is on the screen?'")
+    print("  - find_coordinates: 'Where is the login button?'")
+    print("")
+    print("📱 This client:")
+    print("  • Captures screenshots locally")
+    print("  • Sends to NorthStar for AI analysis")  
+    print("  • Performs mouse clicks locally")
+    print("  • Scales coordinates automatically")
+    print("")
+    print("🚀 Starting MCP server for Cursor...")
     
     client = ScreenAutomationClient()
     

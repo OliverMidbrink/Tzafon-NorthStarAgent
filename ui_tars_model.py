@@ -108,7 +108,9 @@ def run_inference(model_id: str, image_input: str, instruction_text: str, max_ne
         return _run_inference_low_level(model_id, messages)
 
 
+# CLI interface for standalone testing
 def main() -> None:
+    """CLI interface for testing the model directly"""
     parser = argparse.ArgumentParser(description="UI-TARS-2B-SFT image+instruction → text")
     parser.add_argument("--image", required=True, help="Image URL or local image path")
     parser.add_argument("--instruction", required=True, help="Instruction or question for the model")
