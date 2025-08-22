@@ -30,17 +30,38 @@ def update_client_api_key(api_key: str):
     
     print(f"✅ Updated cursor_mcp.py with API key")
 
+def load_api_key():
+    """Load API key from environment, file, or generate new one"""
+    # First try environment variable
+    api_key = os.getenv("MCP_API_KEY")
+    if api_key:
+        return api_key, "environment"
+    
+    # Then try .api_key.txt file
+    try:
+        with open(".api_key.txt", "r") as f:
+            api_key = f.read().strip()
+            if api_key:
+                return api_key, "file"
+    except FileNotFoundError:
+        pass
+    
+    # Finally generate a new one and save it
+    api_key = generate_api_key()
+    try:
+        with open(".api_key.txt", "w") as f:
+            f.write(api_key)
+        return api_key, "generated (saved to .api_key.txt)"
+    except:
+        return api_key, "generated"
+
 def main():
     print("🚀 Starting Screen Automation System")
     print("=" * 50)
     
-    # Generate or use existing API key
-    api_key = os.getenv("MCP_API_KEY")
-    if not api_key:
-        api_key = generate_api_key()
-        print(f"🔑 Generated API key: {api_key}")
-    else:
-        print(f"🔑 Using API key: {api_key}")
+    # Load API key from various sources
+    api_key, key_source = load_api_key()
+    print(f"🔑 API Key: {api_key} (from {key_source})")
     
     # Update client with API key
     update_client_api_key(api_key)

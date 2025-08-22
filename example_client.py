@@ -4,6 +4,7 @@ Example client for UI-TARS HTTP API
 Shows how to send images and get analysis results.
 """
 
+import os
 import requests
 import sys
 from pathlib import Path
@@ -11,8 +12,19 @@ from pathlib import Path
 # Default server URL
 SERVER_URL = "http://localhost:8000"
 
-# You'll get this when starting the server
-API_KEY = "ui-tars-example-key"  # Replace with actual key from server output
+# Load API key from environment or file
+def load_api_key():
+    api_key = os.getenv("GPU_API_KEY")
+    if api_key:
+        return api_key
+    
+    try:
+        with open(".api_key.txt", "r") as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        return "ui-tars-example-key"
+
+API_KEY = load_api_key()
 
 def test_health():
     """Test if server is running"""

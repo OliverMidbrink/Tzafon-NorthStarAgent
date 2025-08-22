@@ -28,9 +28,28 @@ from ui_tars_2b_infer import run_inference, DEFAULT_MODEL_ID
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ui-tars-http-server")
 
-# Generate or load API key
-API_KEY = os.getenv("MCP_API_KEY", "ui-tars-" + secrets.token_urlsafe(32))
-print(f"🔑 API Key: {API_KEY}")
+# Load API key from environment, file, or generate new one
+def load_api_key():
+    # First try environment variable
+    api_key = os.getenv("MCP_API_KEY")
+    if api_key:
+        return api_key, "environment"
+    
+    # Then try .api_key.txt file
+    try:
+        with open(".api_key.txt", "r") as f:
+            api_key = f.read().strip()
+            if api_key:
+                return api_key, "file"
+    except FileNotFoundError:
+        pass
+    
+    # Finally generate a new one
+    api_key = "ui-tars-" + secrets.token_urlsafe(32)
+    return api_key, "generated"
+
+API_KEY, key_source = load_api_key()
+print(f"🔑 API Key: {API_KEY} (from {key_source})")
 
 # Single request lock for GPU
 gpu_lock = threading.Lock()

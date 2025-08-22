@@ -39,6 +39,9 @@ MANIFEST
 .env
 .venv
 
+# API Keys
+.api_key.txt
+
 # IDE
 .vscode/
 .idea/
@@ -57,3 +60,5 @@ Thumbs.db
 *.safetensors
 models/
 checkpoints/
+
+.api_key.txt

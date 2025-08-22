@@ -24,9 +24,23 @@ from typing import Optional, Tuple
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("mcp-screen-client")
 
-# Configuration - reads from environment for remote connections
-GPU_SERVER_URL = os.getenv("GPU_SERVER_URL", "http://localhost:8000")
-GPU_API_KEY = os.getenv("GPU_API_KEY", "ui-tars-L_PJlAW2_0j4uU_hcPYGhxlhTQOlAFGLayNHwpLMPMw")
+# Configuration - reads from environment, file, or fallback
+def load_config():
+    # Server URL
+    server_url = os.getenv("GPU_SERVER_URL", "http://localhost:8000")
+    
+    # API Key priority: environment > file > fallback
+    api_key = os.getenv("GPU_API_KEY")
+    if not api_key:
+        try:
+            with open(".api_key.txt", "r") as f:
+                api_key = f.read().strip()
+        except FileNotFoundError:
+            api_key = "ui-tars-default-key"
+    
+    return server_url, api_key
+
+GPU_SERVER_URL, GPU_API_KEY = load_config()
 
 # Disable pyautogui failsafe
 pyautogui.FAILSAFE = False
