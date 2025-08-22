@@ -138,7 +138,7 @@ def main():
     # Check if server is running
     if not test_health():
         print("❌ Server is not running. Start it with:")
-        print("   python3 mcp_http_server.py")
+        print("   python3 northstar_mcp.py")
         return
     
     # Test image

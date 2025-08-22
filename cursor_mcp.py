@@ -11,6 +11,7 @@ import io
 import logging
 import mcp.server.stdio
 import mcp.types as types
+import os
 import pyautogui
 import requests
 import tempfile
@@ -23,9 +24,9 @@ from typing import Optional, Tuple
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("mcp-screen-client")
 
-# Configuration
-GPU_SERVER_URL = "http://localhost:8000"
-GPU_API_KEY = "ui-tars-L_PJlAW2_0j4uU_hcPYGhxlhTQOlAFGLayNHwpLMPMw"  # Auto-updated
+# Configuration - reads from environment for remote connections
+GPU_SERVER_URL = os.getenv("GPU_SERVER_URL", "http://localhost:8000")
+GPU_API_KEY = os.getenv("GPU_API_KEY", "ui-tars-L_PJlAW2_0j4uU_hcPYGhxlhTQOlAFGLayNHwpLMPMw")
 
 # Disable pyautogui failsafe
 pyautogui.FAILSAFE = False

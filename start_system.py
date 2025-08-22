@@ -14,8 +14,8 @@ def generate_api_key():
     return "ui-tars-" + secrets.token_urlsafe(32)
 
 def update_client_api_key(api_key: str):
-    """Update the API key in the MCP client"""
-    with open("mcp_client.py", "r") as f:
+    """Update the API key in the Cursor MCP client"""
+    with open("cursor_mcp.py", "r") as f:
         content = f.read()
     
     # Find and replace the API key line
@@ -25,10 +25,10 @@ def update_client_api_key(api_key: str):
             lines[i] = f'GPU_API_KEY = "{api_key}"  # Auto-updated'
             break
     
-    with open("mcp_client.py", "w") as f:
+    with open("cursor_mcp.py", "w") as f:
         f.write('\n'.join(lines))
     
-    print(f"✅ Updated mcp_client.py with API key")
+    print(f"✅ Updated cursor_mcp.py with API key")
 
 def main():
     print("🚀 Starting Screen Automation System")
@@ -46,20 +46,24 @@ def main():
     update_client_api_key(api_key)
     
     print("\n📋 System Components:")
-    print("1. GPU Server (mcp_http_server.py) - Runs UI-TARS model")
-    print("2. MCP Client (mcp_client.py) - Screen automation for Cursor")
+    print("1. NorthStar MCP (northstar_mcp.py) - GPU server running UI-TARS model")
+    print("2. Cursor MCP (cursor_mcp.py) - Client for screen automation in Cursor")
     
-    print(f"\n🔧 To start GPU server:")
-    print(f"   MCP_API_KEY={api_key} python3 mcp_http_server.py")
+    print(f"\n🔧 To start NorthStar GPU server:")
+    print(f"   MCP_API_KEY={api_key} python3 northstar_mcp.py")
     
-    print(f"\n🔧 To start MCP client:")
-    print(f"   python3 mcp_client.py")
+    print(f"\n🔧 To start Cursor MCP client:")
+    print(f"   python3 cursor_mcp.py")
     
-    print(f"\n💡 For Cursor MCP config:")
+    print(f"\n💡 For Cursor MCP config (on MacBook):")
     print(f'   "screen-automation": {{')
     print(f'     "command": "python3",')
-    print(f'     "args": ["{os.path.abspath("mcp_client.py")}"],')
-    print(f'     "cwd": "{os.getcwd()}"')
+    print(f'     "args": ["/path/to/cursor_mcp.py"],')
+    print(f'     "cwd": "/path/to/client/directory",')
+    print(f'     "env": {{')
+    print(f'       "GPU_SERVER_URL": "http://YOUR_STATIC_IP:8000",')
+    print(f'       "GPU_API_KEY": "{api_key}"')
+    print(f'     }}')
     print(f'   }}')
     
     print(f"\n🎯 Available MCP tools in Cursor:")
@@ -78,10 +82,10 @@ def main():
         
         try:
             subprocess.run([
-                sys.executable, "mcp_http_server.py"
+                sys.executable, "northstar_mcp.py"
             ], env=env)
         except KeyboardInterrupt:
-            print("\n⏹️  GPU server stopped")
+            print("\n⏹️  NorthStar GPU server stopped")
 
 if __name__ == "__main__":
     main()
