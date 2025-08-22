@@ -24,7 +24,18 @@ def build_messages(image_input: str, instruction_text: str) -> List[Dict[str, An
         if not os.path.exists(image_input):
             raise FileNotFoundError(f"Image path does not exist: {image_input}")
         image = Image.open(image_input).convert("RGB")
-        image_content = {"type": "image", "image": image}
+        
+        # Resize image to 1024x1024 while maintaining aspect ratio
+        target_size = (1024, 1024)
+        image.thumbnail(target_size, Image.Resampling.LANCZOS)
+        
+        # Create a new image with white background and paste the resized image
+        new_image = Image.new("RGB", target_size, (255, 255, 255))
+        # Center the image
+        offset = ((target_size[0] - image.size[0]) // 2, (target_size[1] - image.size[1]) // 2)
+        new_image.paste(image, offset)
+        
+        image_content = {"type": "image", "image": new_image}
 
     return [
         {

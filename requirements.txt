@@ -1,5 +1,30 @@
+# Core ML packages
+torch>=2.5.1
+torchvision>=0.20.1
+torchaudio>=2.5.1
+
+# Transformers and related
 transformers>=4.55.0
 accelerate>=1.0.0
-torch>=2.7.1
-pillow>=10.3.0
+
+# Image processing
+pillow>=11.0.0
+
+# HTTP requests
 requests>=2.31.0
+
+# Additional dependencies
+numpy>=2.1.0
+huggingface-hub>=0.20.0
+
+# MCP Server
+mcp>=1.0.0
+
+# HTTP Server
+fastapi>=0.100.0
+uvicorn>=0.23.0
+python-multipart>=0.0.6
+
+# Screen automation
+pyautogui>=0.9.54
+pillow>=11.0.0
